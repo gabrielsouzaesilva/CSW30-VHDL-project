@@ -1,0 +1,36 @@
+ghdl -a reg16bits.vhdl
+ghdl -e reg16bits
+ghdl -a bancoReg.vhdl
+ghdl -e bancoReg
+ghdl -a ula.vhdl
+ghdl -e ula
+ghdl -a maquinaEstados.vhdl
+ghdl -e maquinaEstados
+ghdl -a pc.vhdl
+ghdl -e pc
+ghdl -a rom.vhdl
+ghdl -e rom
+ghdl -a processador.vhdl
+ghdl -e processador
+ghdl -a processador_tb.vhdl
+ghdl -e processador_tb
+ghdl -r processador_tb --stop-time=10000ns --wave=processador_tb.ghw
+gtkwave processador_tb.ghw
+
+----------------------------- NOTAS -----------------------
+
+12/10 : Todos os componentes individuais foram testados (OK)
+13/10 : ROM atualizada com o programa a ser executado (Verificar)
+14/10 : Finalizado com teste de erros. Fazer um teste nos sinais pra ver se ta tudo ok
+
+
+----------------------------- ToDos -----------------------
+
+12/10 : Ajustar processador ao formato de instruções 
+		- Instruction decode
+		- Ajustar bacnoReg port map (regA e regB)
+		- Incluir em ALUop todas as possibilidades das codificações
+		- Etc...
+
+13/10 : Verificar todas as ligações no processador
+14/10 : Sem erros, verificar sinais.
