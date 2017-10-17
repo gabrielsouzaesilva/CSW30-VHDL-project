@@ -22,6 +22,7 @@ gtkwave processador_tb.ghw
 12/10 : Todos os componentes individuais foram testados (OK)
 13/10 : ROM atualizada com o programa a ser executado (Verificar)
 14/10 : Finalizado com teste de erros. Fazer um teste nos sinais pra ver se ta tudo ok
+16/10 : Arrumar codificação em renesas e fazer os testes
 
 
 ----------------------------- ToDos -----------------------
@@ -34,3 +35,5 @@ gtkwave processador_tb.ghw
 
 13/10 : Verificar todas as ligações no processador
 14/10 : Sem erros, verificar sinais.
+
+16/10: Arrumando codificação feita em MIPS -> RENESAS terminar de arrumar e verificar tudo. DEpois alterar os .vhdl

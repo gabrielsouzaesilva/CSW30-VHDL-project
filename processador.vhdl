@@ -4,11 +4,14 @@ use ieee.numeric_std.all;
 
 entity processador is
 	port ( processadorClk : in std_logic; -- clk geral
-		   rstProcessador : in std_logic; -- reseta o banco de registradores
-		   -- memToReg : in std_logic; não preicsa ainda 
-		   -- ALUsrcA : in std_logic;  não precisa ainda
-		   ULAout : out unsigned (15 downto 0);
-		   constante: in unsigned(15 downto 0) -- constante qualquer 
+		   rstProcessador : in std_logic; -- Reset 
+		   constante: in unsigned(15 downto 0); -- constante qualquer 
+		   ULAout : out unsigned (15 downto 0); -- Saida ULA
+		   estado_p: out unsigned(1 downto 0); -- Pino saida estado da maquina de estados
+		   pcOut: out unsigned(15 downto 0); -- Pino saida PC
+		   romOut: out unsigned(15 downto 0); -- Pino saida data ROM
+		   bacnoRegOut_A: out unsigned(15 downto 0); -- Pino saida regA
+		   bacnoRegOut_B: out unsigned(15 downto 0)	 -- Pino saida regB
 		 );
 end entity;
 
@@ -27,16 +30,16 @@ architecture a_processador of processador is
 	end component;
 
 	component ula is
-		port( 	in_a : in unsigned(15 downto 0); -- entrada a 16 bits unsigned
-		  		in_b : in unsigned(15 downto 0); -- entrada b 16 bits unsigned
-		  		sel_op : in unsigned(2 downto 0); -- seletor para operação 2 bits : 000 soma, 001 subtracao, 010 compara, 011 div, 100 xor, 101 nor
-		  		out_a : out unsigned(15	 downto 0) -- saida 16 bits unsigned
+		port( 	in_a : in unsigned(15 downto 0); -- entrada a 16 bits 
+		  		in_b : in unsigned(15 downto 0); -- entrada b 16 bits 
+		  		sel_op : in unsigned(2 downto 0); -- seletor para operação (3 bits)
+		  		out_a : out unsigned(15	 downto 0) -- saida 16 bits 
 		 	);
 	end component;
 
 	component pc is
 		port (	clk : in std_logic;
-				write_en : in unsigned(1 downto 0);
+				write_en : in std_logic;
 				rst : in std_logic;
 				data_in : in unsigned(15 downto 0);
 				data_out : out unsigned(15 downto 0)
@@ -63,7 +66,7 @@ architecture a_processador of processador is
 	signal opcode: unsigned(3 downto 0);
 	signal ALUOp_s, regWrite_s, regA_s, regB_s: unsigned(2 downto 0);
 	signal estado_s,AluSrcB_s: unsigned(1 downto 0);
-	signal jump_en, writeReg_s: std_logic;
+	signal jump_en, writeReg_s, writePC_s: std_logic;
 
 begin
 
@@ -80,7 +83,7 @@ begin
 
 	alu: ula port map ( in_a => data_regA , in_b => ula_in_b , sel_op => ALUOp_s, out_a => signal_write_data);
 
-	pc_p: pc port map(clk => processadorClk, write_en => estado_s, rst => rstProcessador, data_in => data_in_pc, data_out => data_out_pc);
+	pc_p: pc port map(clk => processadorClk, write_en => writePC_s, rst => rstProcessador, data_in => data_in_pc, data_out => data_out_pc);
 	rom_p: rom port map(clk => processadorClk, address => data_out_pc, data => data_rom_out);
 
 	stateMachine: maquinaEstados port map(clk => processadorClk, rst => rstProcessador, estado => estado_s);
@@ -128,6 +131,10 @@ begin
 	address_rom <= data_out_pc when estado_s = "00" else
 				   address_rom;
 
+	-- Enable PC em "01"
+	writePC_s <= '1' when estado_s = "01" else
+				 '0';
+
 	-- Executa jump ou PC+1
 	data_in_pc  <= data_out_pc+1 when estado_s = "01" and jump_en = '0' else -- pc+1
 				   "0000" & jump_address when estado_s = "01" and jump_en = '1' else -- jump
@@ -144,7 +151,15 @@ begin
 	writeReg_s <= '1' when estado_s = "10" else
 				  '0';
 
+
+	-- Liga os pinos de saida
 	ULAout <= signal_write_data;
+	estado_p <= estado_s;
+	pcOut <= data_out_pc;
+	romOut <= data_rom_out;
+	bacnoRegOut_B <= data_regB;
+	bacnoRegOut_A <= data_regA;
+
 
 
 end architecture;

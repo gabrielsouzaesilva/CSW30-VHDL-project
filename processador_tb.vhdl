@@ -8,11 +8,14 @@ end entity;
 architecture a_processador_tb of processador_tb is
 	component processador
 		port (	processadorClk : in std_logic; -- clk geral
-		  		rstProcessador : in std_logic; -- reseta o banco de registradores
-		   		-- memToReg : in std_logic; não preicsa ainda 
-		   		-- ALUsrcA : in std_logic;  não precisa ainda
-		   		ULAout : out unsigned (15 downto 0);
-		   		constante: in unsigned(15 downto 0) -- constante qualquer 
+		 	  	rstProcessador : in std_logic; -- Reset 
+		   		constante: in unsigned(15 downto 0); -- constante qualquer 
+		   		ULAout : out unsigned (15 downto 0); -- Saida ULA
+		   		estado_p: out unsigned(1 downto 0); -- Pino saida estado da maquina de estados
+		   		pcOut: out unsigned(15 downto 0); -- Pino saida PC
+		   		romOut: out unsigned(15 downto 0); -- Pino saida data ROM
+		   		bacnoRegOut_A: out unsigned(15 downto 0); -- Pino saida regA
+		   		bacnoRegOut_B: out unsigned(15 downto 0)	 -- Pino saida regB
 		 );
 	end component;
 
@@ -22,12 +25,12 @@ architecture a_processador_tb of processador_tb is
 begin
 	uut: processador port map(processadorClk => processadorClk, rstProcessador => rstProcessador,  ULAout => ULAout, constante=>constante );
 
-	process -- clk 50 ns
+	process -- clk 25 ns
 	begin
 		processadorClk <= '0';
-		wait for 50 ns;
+		wait for 25 ns;
 		processadorClk <= '1';
-		wait for 50 ns;
+		wait for 25 ns;
 	end process;
 
 	process -- reset

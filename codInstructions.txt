@@ -1,40 +1,52 @@
 DATA [15:0]
+OPCODE [15:10]
 
-OPCODE [15:12]
+================================================= INSTRUÇÕES =====================================================
 
-NOP => OPCODE = 0000
-JUMP => OPCODE =  1111
-R => OPCODE =  0001
-I => OPCODE = 1000, 1001
+0. nop			:	 0000000000000000															#	NOP
+1. add r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1 + r2
+2. add imm, r2	:	 opcode(15 downto 10), r1(9 downto 7), imm(6 downto 0)						#	r2 <= imm + r2
+3. sub r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 - r1
+4. and r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 and r1
+5. xor r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 xor r1
+6. not r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= not(r1)
+7. mov imm, r2	:	 opcode(15 downto 10), r2(9 downto 7), imm(6 downto 0)						#	r2 <= imm
+8. mov r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1
+9. jump imm 	:	 opcode(15 downto 10), imm(9 downto 0)										#	JUMP TO ADDRESS(IMM)
 
-Formato R: opcode(4) , 		$rs(3),		  $rt(3), 		$rd(3),		 function(3)
-		(15 downto 12)	 (11 downto 9)  (8 downto 6)   (5 downto 3)	  (2 downto 0)
+============================================ PROGRAMAS EXECUTADOS ==================================================
 
-Formato I: opcode(4) , 		$rs(3), 		 $rt(3), 		immediate(6)
-        (15 downto 12)   (11 downto 9)    (8 downto 6)     (5 downto 0)
-
--------------------- ASSEMBLY : Formato R --------------------
-
-add $rd, $rs, $rt, 000			# Soma o valor de $rs e $rt e armazena em $rd ($rd <= $rs + $rt)
-sub $rd, $rs, $rt, 001			# Subtrai o valor de $rt em $rs e armazena em $rd ($rd <= $rs - $rt)
-and $rd, $rs, $rt, 011			# Executa a operação AND entre os valores de $rt e $rs
-xor $rd, $rs, $rt, 100			# Executa a operação XOR entre os valores de $rt e $rs
-nor $rd, $rs, $rt, 101			# Executa a operação NOR entre os valores de $rt e $rs
-
--------------------- ASSEMBLY : Formato I --------------------
-
-addi $rt, $rs, immediate	# Soma constante ao valor de $rs e armazena em $rt ( $rt <= $rs + immediate) \\ OPCODE = "1000"
-cpy $rt, $rs, immediate   # Passa o conteudo de $rs para $rt ( $rt <= $rs ) \\ OPCODE = "1001" 
-
-
-=============== PROGRAMA EXECUTADO =============================
-
+# CÓDIGO 1:
 ASSEMBLY:						BINÁRIO:				HEX:
 
-1. addi $r3, $zero, 5		=> 1000 000 011 000101 	=> 0x80C5
-2. addi $r4, $zero, 8		=> 1000 000 100 001000 	=> 0x8108
-3. add $r5, $r3, $r4, 000	=> 0001 011 100 101 000	=> 0x1728
-4. addi $r5, $r5, -1		=> 1000 101 101 111111	=> 0x8B7F
-5. jump 000000010100		=> 1111 000000010100	=> 0xF014
-6. cpy $r3, $r4, 000000		=> 1001 100 011 000000	=> 0x98C0 @ADDRESS 000000010100
-7. jump 000000000011		=> 1111 000000000011	=> 0xF003 
+1. mov 5, $r3				=> x 	=> x
+2. mov 8, $r4				=> x 	=> x
+3. add $r3, $r4				=> x 	=> x
+4. mov $r4, $r5				=> x	=> x
+5. add -1, $r5				=> x	=> x
+6. mov $r5, $r3				=> x	=> x
+7. jump 3					=> x	=> x 
+
+ROM:
+			 0 => "1000000011000101", -- addi $r3, $zero, 5
+			 1 => "1000000100001000", -- addi $r4, $zero, 8
+			 2 => "0001011100101000", -- add $r5, $r3, $r4, 000 
+			 3 => "1000101101111111", -- addi $r5, $r5, -1
+			 4 => "1111000000010100", -- jump 000000010100 (address 20)
+			 5 => "0000000000000000", 
+			 6 => "0000000000000000",  
+			 7 => "0000000000000000",  
+			 8 => "0000000000000000",  
+			 9 => "0000000000000000",  
+			 10 => "0000000000000000",
+			 11 => "0000000000000000",  
+			 12 => "0000000000000000",  
+			 13 => "0000000000000000",  
+			 14 => "0000000000000000",  
+			 15 => "0000000000000000",  
+			 16 => "0000000000000000",  
+			 17 => "0000000000000000",  
+			 18 => "0000000000000000",  
+			 19 => "0000000000000000",  
+			 20 => "1001100011000000", -- cpy $r3, $r4, 000000
+			 21 => "1111000000000011", -- jump 000000000011 (address 3) : LOOP
