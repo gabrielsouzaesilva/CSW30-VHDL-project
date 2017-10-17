@@ -88,25 +88,26 @@ begin
 
 	stateMachine: maquinaEstados port map(clk => processadorClk, rst => rstProcessador, estado => estado_s);
 
-	opcode <= data_rom_out(15 downto 12); -- Recebe opcode 
+	opcode <= data_rom_out(15 downto 10); -- Recebe opcode 
 
-	immediate <= data_rom_out(5 downto 0); -- Prepara constante
+	immediate <= data_rom_out(6 downto 0); -- Prepara constante
 
-	jump_address <= data_rom_out(11 downto 0); -- Prepara endereço de jump
+	jump_address <= data_rom_out(9 downto 0); -- Prepara endereço de jump
 
-	jump_en <= '1' when opcode = "1111" else -- Verifica função de jump
+	jump_en <= '1' when opcode = "111111" else -- Verifica função de jump
 			   '0';							 
 
 	-- Mux seleciona a entrada B da ULA
-	AluSrcB_s <= "00" when opcode = "0001" else
+	AluSrcB_s <= "00" when opcode(5 downto 3) = "001" else
 				 "10" when opcode = "1000" else
 				 "00" when opcode = "1001" else
 				 "00";
 
 	-- Escolhe operação da ULA
-	ALUOp_s <= data_rom_out(2 downto 0) when opcode = "0001" else -- Function Formarto R
-			   "000" when opcode = "1000" else -- Usar soma quando for addi
-			   "000" when opcode = "1001" else -- Usar soma +0 quando for cpy
+	ALUOp_s <= opcode(2 downto 0) when opcode(5 downto 3) = "001" else -- Instruções da ULA
+			   "000" when opcode = "010000" else -- Usar soma +0 quando for MOV IMM
+			   "000" when opcode = "010001" else -- Usar soma +0 quando for MOV REG
+			   "000" when opcode = "010010" else -- Usa soma quando for ADDI
 			   "000";
 
 	-- Verifica qual registrador é lido na entrada A

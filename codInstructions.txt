@@ -1,43 +1,50 @@
 DATA [15:0]
 OPCODE [15:10]
 
+r1 	=> registrador fonte
+r2 	=> registrador escrita
+exc => bits não utilizados 
+
+
 ================================================= INSTRUÇÕES =====================================================
 
-0. nop			:	 0000000000000000															#	NOP
-1. add r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1 + r2
-2. add imm, r2	:	 opcode(15 downto 10), r1(9 downto 7), imm(6 downto 0)						#	r2 <= imm + r2
-3. sub r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 - r1
-4. and r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 and r1
-5. xor r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 xor r1
-6. not r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= not(r1)
-7. mov imm, r2	:	 opcode(15 downto 10), r2(9 downto 7), imm(6 downto 0)						#	r2 <= imm
-8. mov r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1
-9. jump imm 	:	 opcode(15 downto 10), imm(9 downto 0)										#	JUMP TO ADDRESS(IMM)
+INSTRUÇÕES		:								CODIFICAÇÃO										#	AÇÃO			 		#	OPCODES	
+0. nop			:	 0000000000000000															#	nop						# 	000000
+1. add r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1 + r2			#	001000
+2. sub r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 - r1			#	001001
+3. and r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 and r1			#	001011
+4. xor r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 xor r1			#	001100
+5. not r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= not(r1)			#	001101
+6. mov imm, r2	:	 opcode(15 downto 10), r2(9 downto 7), imm(6 downto 0)						#	r2 <= imm 				#	010000
+7. mov r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1				#	010001
+8. add imm, r2	:	 opcode(15 downto 10), r2(9 downto 7), imm(6 downto 0)						#	r2 <= imm + r2			#	010010
+9. jump address :	 opcode(15 downto 10), address(9 downto 0)									#	JUMP TO ADDRESS(IMM)	#	111111
 
 ============================================ PROGRAMAS EXECUTADOS ==================================================
 
 # CÓDIGO 1:
 ASSEMBLY:						BINÁRIO:				HEX:
 
-1. mov 5, $r3				=> x 	=> x
-2. mov 8, $r4				=> x 	=> x
-3. add $r3, $r4				=> x 	=> x
-4. mov $r4, $r5				=> x	=> x
-5. add -1, $r5				=> x	=> x
-6. mov $r5, $r3				=> x	=> x
-7. jump 3					=> x	=> x 
+1. mov 5, $r3				=> 010000 011 0000101 	=> 0x4185
+2. mov 8, $r4				=> 010000 100 0001000 	=> 0x4208
+3. add $r3, $r4				=> 001000 011 100 0000	=> 0x21C0
+4. mov $r4, $r5				=> 010001 100 101 0000	=> 0x4650
+5. add -1, $r5				=> 010010 101 1111111	=> 0x4AFF
+6. jump 20					=> 111111 0000010100	=> 0xFC14
+7. mov $r5, $r3				=> 010001 101 011 0000	=> 0x46B0
+8. jump 2					=> 111111 0000000010	=> 0xFC02 
 
 ROM:
-			 0 => "1000000011000101", -- addi $r3, $zero, 5
-			 1 => "1000000100001000", -- addi $r4, $zero, 8
-			 2 => "0001011100101000", -- add $r5, $r3, $r4, 000 
-			 3 => "1000101101111111", -- addi $r5, $r5, -1
-			 4 => "1111000000010100", -- jump 000000010100 (address 20)
-			 5 => "0000000000000000", 
-			 6 => "0000000000000000",  
-			 7 => "0000000000000000",  
-			 8 => "0000000000000000",  
-			 9 => "0000000000000000",  
+			 0 	=> "0100000110000101", -- mov 5, $r3
+			 1 	=> "0100001000001000", -- mov 8, $r4
+			 2 	=> "0010000111000000", -- add $r3, $r4
+			 3 	=> "0100011001010000", -- mov $r4, $r5
+			 4 	=> "0100101011111111", -- add -1, $r5	
+			 5 	=> "1111110000010100", -- jump 20
+			 6 	=> "0000000000000000",  
+			 7 	=> "0000000000000000",  
+			 8  => "0000000000000000",  
+			 9 	=> "0000000000000000",  
 			 10 => "0000000000000000",
 			 11 => "0000000000000000",  
 			 12 => "0000000000000000",  
@@ -48,5 +55,5 @@ ROM:
 			 17 => "0000000000000000",  
 			 18 => "0000000000000000",  
 			 19 => "0000000000000000",  
-			 20 => "1001100011000000", -- cpy $r3, $r4, 000000
-			 21 => "1111000000000011", -- jump 000000000011 (address 3) : LOOP
+			 20 => "0100011010110000", -- mov $r5, $r3
+			 21 => "1111110000000010", -- jump 2 (address 2) : LOOP
