@@ -25,12 +25,12 @@ architecture a_processador_tb of processador_tb is
 begin
 	uut: processador port map(processadorClk => processadorClk, rstProcessador => rstProcessador,  ULAout => ULAout, constante=>constante );
 
-	process -- clk 25 ns
+	process -- clk 100 ns
 	begin
 		processadorClk <= '0';
-		wait for 25 ns;
+		wait for 100 ns;
 		processadorClk <= '1';
-		wait for 25 ns;
+		wait for 100 ns;
 	end process;
 
 	process -- reset

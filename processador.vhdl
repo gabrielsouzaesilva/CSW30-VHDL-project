@@ -61,9 +61,9 @@ architecture a_processador of processador is
 	end component;
 
 	signal data_regB, data_regA, signal_write_data, ula_in_b, data_in_pc, data_out_pc, data_rom_out, address_rom : unsigned(15 downto 0);
-	signal jump_address: unsigned(11 downto 0);
-	signal immediate: unsigned(5 downto 0);
-	signal opcode: unsigned(3 downto 0);
+	signal jump_address: unsigned(15 downto 0);
+	signal immediate: unsigned(6 downto 0);
+	signal opcode: unsigned(5 downto 0);
 	signal ALUOp_s, regWrite_s, regA_s, regB_s: unsigned(2 downto 0);
 	signal estado_s,AluSrcB_s: unsigned(1 downto 0);
 	signal jump_en, writeReg_s, writePC_s: std_logic;
@@ -92,68 +92,78 @@ begin
 
 	immediate <= data_rom_out(6 downto 0); -- Prepara constante
 
-	jump_address <= data_rom_out(9 downto 0); -- Prepara endereço de jump
+	jump_address <= signal_write_data when jump_en = '1' else
+					"0000000000000000"; -- Prepara endereço de jump
 
 	jump_en <= '1' when opcode = "111111" else -- Verifica função de jump
 			   '0';							 
 
 	-- Mux seleciona a entrada B da ULA
-	AluSrcB_s <= "00" when opcode(5 downto 3) = "001" else
-				 "10" when opcode = "1000" else
-				 "00" when opcode = "1001" else
+	AluSrcB_s <= "00" when opcode(5 downto 3) = "001" else -- Instruções 001uuu ULA
+				 "00" when opcode = "010001" else -- Mov reg1, reg2
+				 "01" when opcode = "010000" else -- Mov imm, reg2
+				 "01" when opcode = "010010" else -- Add imm, reg2
+				 "00" when opcode = "111111" else -- reg0 no jump
 				 "00";
 
 	-- Escolhe operação da ULA
 	ALUOp_s <= opcode(2 downto 0) when opcode(5 downto 3) = "001" else -- Instruções da ULA
 			   "000" when opcode = "010000" else -- Usar soma +0 quando for MOV IMM
 			   "000" when opcode = "010001" else -- Usar soma +0 quando for MOV REG
-			   "000" when opcode = "010010" else -- Usa soma quando for ADDI
+			   "000" when opcode = "010010" else -- Usar soma quando for ADDI
+			   "000" when opcode = "111111" else -- Usar soma +0 quando for jump
 			   "000";
 
 	-- Verifica qual registrador é lido na entrada A
-	regA_s  <= data_rom_out(11 downto 9) when opcode = "0001" else -- formato R
-			   data_rom_out(11 downto 9) when opcode = "1000" else -- addi regA<=$rs
-			   data_rom_out(11 downto 9) when opcode = "1001" else -- cpy  $rt <= $rs + 0
+	regA_s  <= data_rom_out(9 downto 7) when opcode(5 downto 3) = "001" else -- Instruções da ULA : reg1
+			   "000" when opcode = "010000" else -- mov imm, r2 (r2<= imm + r0)
+			   data_rom_out(9 downto 7) when opcode = "010001" else -- mov r1,r2 (r2 <= r1)
+			   data_rom_out(9 downto 7) when opcode = "010010" else -- mov imm, r2 (r2<=r2+imm)
+			   data_rom_out(9 downto 7) when opcode = "111111" else -- jump
 			   "000";
 
 	-- Verifica qual registrador é lido na entrada B
-	regB_s <= data_rom_out(8 downto 6) when opcode = "0001" else  -- Formato R
-			  data_rom_out(11 downto 9) when opcode = "1000" else -- addi regB <= $rs
-			  "000" when opcode = "1001" else -- cpy regB <= $rs + 0
+	regB_s <= data_rom_out(6 downto 4) when opcode(5 downto 3) = "001" else  -- Instruções da ULA
+			  "000" when opcode = "010000" else -- mov imm, r2
+			  "000" when opcode = "010001" else -- mov r1,r2
+			  "000" when opcode = "010010" else -- add imm, r2
+			  "000" when opcode = "111111" else -- jump
 			  "000"; 
 
 	-- Verifica qual registrador deve ser escrito
-	regWrite_s <= data_rom_out(5 downto 3) when opcode = "0001" else -- Formato R regWrite<= $rd
-				  data_rom_out(8 downto 6) when opcode = "1000" else -- Addi regWrite <= $rt
-				  data_rom_out(8 downto 6) when opcode = "1001" else -- Cpy regWrite <= $rt
+	regWrite_s <= data_rom_out(6 downto 4) when opcode(5 downto 3) = "001" else -- Instruções ULA
+				  data_rom_out(9 downto 7) when opcode = "010000" else -- mov imm, r2
+				  data_rom_out(6 downto 4) when opcode = "010001" else -- mov r1,r2
+				  data_rom_out(9 downto 7) when opcode = "010010" else -- add imm, r2
 				  "000"; 
 
 	-- Fetch em 00
 	address_rom <= data_out_pc when estado_s = "00" else
 				   address_rom;
 
-	-- Enable PC em "01"
-	writePC_s <= '1' when estado_s = "01" else
+	-- Enable PC em "10"
+	writePC_s <= '1' when estado_s = "10" else
 				 '0';
 
 	-- Executa jump ou PC+1
-	data_in_pc  <= data_out_pc+1 when estado_s = "01" and jump_en = '0' else -- pc+1
-				   "0000" & jump_address when estado_s = "01" and jump_en = '1' else -- jump
-				    data_out_pc;
+	data_in_pc  <= data_out_pc+1 when estado_s = "10" and jump_en = '0' else -- pc+1
+				   jump_address when estado_s = "10" and jump_en = '1' else -- jump
+				   data_out_pc;
 
 	-- Mux entrada B da ULA
 	ula_in_b <= data_regB when AluSrcB_s = "00" else
-				"0000000000" & immediate when AluSrcB_s = "10" and immediate(5) = '0' else -- Addi immediate positivo
-				"1111111111" & immediate when AluSrcB_s = "10" and immediate(5) = '1' else -- Addi immediate negativo
-				constante when AluSrcB_s = "01" else -- constante externa =4
+				"000000000" & immediate when AluSrcB_s = "01" and immediate(6) = '0' else -- Add immediate positivo
+				"111111111" & immediate when AluSrcB_s = "01" and immediate(6) = '1' else -- Add immediate negativo
+				constante when AluSrcB_s = "10" else -- constante externa =4
 				"0000000000000000";
 
 	-- Escreve no registrador (Execute em 10)
-	writeReg_s <= '1' when estado_s = "10" else
+	writeReg_s <= '1' when estado_s = "01" else
 				  '0';
 
 
 	-- Liga os pinos de saida
+
 	ULAout <= signal_write_data;
 	estado_p <= estado_s;
 	pcOut <= data_out_pc;
