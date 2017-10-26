@@ -28,9 +28,9 @@ begin
 	process -- clk 100 ns
 	begin
 		processadorClk <= '0';
-		wait for 100 ns;
+		wait for 50 ns;
 		processadorClk <= '1';
-		wait for 100 ns;
+		wait for 50 ns;
 	end process;
 
 	process -- reset
