@@ -1,30 +1,45 @@
 DATA [15:0]
 OPCODE [15:10]
 
-r1 	=> registrador fonte
-r2 	=> registrador escrita
-exc => bits não utilizados 
+rA,rC 	=> registrador fonte
+rBranch => registrador auxiliar para condicional
+rB 		=> registrador escrita
+imm 	=> constante
+exc 	=> bits não utilizados 
 
 
 ================================================= INSTRUÇÕES =====================================================
 
-INSTRUÇÕES		:								CODIFICAÇÃO										#	AÇÃO			 		#	OPCODES	
-0. nop			:	 0000000000000000															#	nop						# 	000000
-1. add r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1 + r2			#	001000
-2. sub r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 - r1			#	001001
-3. and r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 and r1			#	001011
-4. xor r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r2 xor r1			#	001100
-5. not r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= not(r1)			#	001101
-6. mov imm, r2	:	 opcode(15 downto 10), r2(9 downto 7), imm(6 downto 0)						#	r2 <= imm 				#	010000
-7. mov r1, r2	:	 opcode(15 downto 10), r1(9 downto 7), r2(6 downto 4), exc(3 downto 0)		#	r2 <= r1				#	010001
-8. add imm, r2	:	 opcode(15 downto 10), r2(9 downto 7), imm(6 downto 0)						#	r2 <= imm + r2			#	010010
-9. jump r1 		:	 opcode(15 downto 10), r1(9 downto 7), exc(6 downto 0)						#	JUMP TO ADDRESS(r1)		#	111111
+INSTRUÇÕES				:								CODIFICAÇÃO										#	AÇÃO			 		#	OPCODES	
+0. nop					:	 0000000000000000															#	nop						# 	000000
+1. add rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rA + rB			#	001000
+2. sub rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB - rA			#	001001
+3. cMov					:	 opcode(15 downto 10), rA(9 downto 7), rC(6 downto 4), exc(3 downto 0)		#	rA>=rC (rBranch<='1')	#	001010
+4. and rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB and rA			#	001011
+5. xor rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB xor rA			#	001100
+6. not rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= not(rA)			#	001101
+7. mov imm, rB			:	 opcode(15 downto 10), rA(9 downto 7), imm(6 downto 0)						#	rB <= imm 				#	010000
+8. mov rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rA				#	010001
+9. add imm, rB			:	 opcode(15 downto 10), rB(9 downto 7), imm(6 downto 0)						#	rB <= imm + rB			#	010010
+10.jump rA 				:	 opcode(15 downto 10), rA(9 downto 7), exc(6 downto 0)						#	ABSOLUTE JUMP			#	111111
+11.bCond				:	 opcode(15 downto 10), rBranch(9 downto 7), imm(6 downto 0)					#	RELATIVE JUMP 			#	111110
+
+
 
 ============================================ PROGRAMAS EXECUTADOS ==================================================
 
 # CÓDIGO 1:
-ASSEMBLY:						BINÁRIO:				HEX:
 
+ASSEMBLY:						BINÁRIO:				HEX:
+1. mov 0, $r3					=> 010000 011 0000000	=>
+2. mov 0. $r4					=> 010000 100 0000000	=>
+3. add $r3, $r4					=> 001000 011 100 0000	=>
+4. add 1, $r3					=> 010010 011 0000001	=>
+5. add 30, $r2					=> 010010 010 0011110	=>
+
+# CÓDIGO 2:
+
+ASSEMBLY:						BINÁRIO:				HEX:
 1. 	mov 5, $r3					=> 010000 011 0000101 	=> 0x4185
 2. 	mov 8, $r4					=> 010000 100 0001000 	=> 0x4208
 3. 	add $r4, $r3				=> 001000 100 011 0000	=> 0x2230
@@ -61,7 +76,7 @@ ROM:
 			 21 => "0100000010000010", -- mov 2, $r1
 			 22 => "1111110010000000", -- jump 2($r1)
 
-# CÓDIGO 2:
+# CÓDIGO 3:
 ASSEMBLY:						BINÁRIO:				HEX:
 
 1. 	mov 2, $r3					=> 010000 011 0000010 	=> 0x4185
