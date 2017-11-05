@@ -17,10 +17,10 @@ end entity;
 
 architecture a_processador of processador is
 	component bancoReg is
-		port( 	clk		: in std_logic; -- clock
+		port( 	clk			: in std_logic; -- clock
 		  		rst 		: in std_logic; -- reset
 		  		write_en	: in std_logic;	-- write enable
-		  		write_data: in unsigned(15 downto 0); -- valor a ser escrito em write_reg
+		  		write_data 	: in unsigned(15 downto 0); -- valor a ser escrito em write_reg
 		  		reg_sel_write : in unsigned(2 downto 0); -- registrador a ser escrito
 		  		reg_sel_A: in unsigned(2 downto 0); -- entrada de dados
 		  		reg_sel_B: in unsigned(2 downto 0); -- entrada de dados
@@ -75,7 +75,7 @@ architecture a_processador of processador is
 	signal opcode: unsigned(5 downto 0);
 	signal ALUOp_s, regWrite_s, regA_s, regB_s: unsigned(2 downto 0);
 	signal estado_s,AluSrcB_s: unsigned(1 downto 0);
-	signal writeReg_s, writePC_s, AluSrcA_s, regWrite_en, rst_regBranch: std_logic;
+	signal writeReg_s, writePC_s, AluSrcA_s, regWrite_en, jump_en: std_logic;
 
 begin
 
@@ -106,32 +106,28 @@ begin
 	stateMachine: maquinaEstados port map(clk => processadorClk, rst => rstProcessador, estado => estado_s);
 
 	-- Registrador para saltos condicionais
-	regBranch: reg16bits port map(regClk => processadorClk, regRst => rst_regBranch, regWrite_en => regWrite_en, regData_in => bReg_in, regData_out => regData_out);
+	regBranch: reg16bits port map(regClk => processadorClk, regRst => rstProcessador, regWrite_en => regWrite_en, regData_in => bReg_in, regData_out => regData_out);
 
 	-- Operações:
 
 	-- Recebe opcode
-	opcode <= data_rom_out(15 downto 10); 
+	opcode <= data_rom_out(15 downto 10) when estado_s = "00"; 
 
 	-- Prepara constante
-	immediate <= data_rom_out(6 downto 0);
+	immediate <= data_rom_out(6 downto 0) when estado_s = "00";
 
 	-- Prepara endereço de jump
 	jump_address <= signal_write_data when opcode = "111111" else -- Recebe valor de jump absoluto
-					signal_write_data when opcode = "111110" else -- Recebe valor de jump relativo (PC <= PC + signed(imm))
+					signal_write_data when opcode = "111110"; -- Recebe valor de jump relativo (PC <= PC + signed(imm))
 
 	-- Ativa jump
 	jump_en <= '1' when opcode = "111111" else -- Ativa jump quando detecta a instrução de jump absoluto
 			   '1' when opcode = "111110" and regData_out = "0000000000000001" else -- Ativa quando detecta salto condicional
 			   '0';
 
-	-- Reseta registrador de branch após executar o branch
-	rst_regBranch <= '1' when opcode = "111110" and estado_s ="11" else
-					 rstProcessador;
-
 	--Mux seleciona a entrada A da ULA
-	AluSrcA_s <= '1' when opcode = "111110" else -- Recebe data_ou_pc quando bCond
-				 '0'; -- Outros casos recebe saida do bancoReg
+	AluSrcA_s <=  '1' when opcode = "111110" else -- Recebe data_out_pc quando bCond
+				  '0'; -- Outros casos recebe saida do bancoReg
 				 
 	-- Mux seleciona a entrada B da ULA
 	AluSrcB_s <= "00" when opcode(5 downto 3) = "001" else -- Instruções 001uuu ULA
@@ -139,7 +135,7 @@ begin
 				 "01" when opcode = "010000" else -- Mov imm, regB
 				 "01" when opcode = "010010" else -- Add imm, regB
 				 "00" when opcode = "111111" else -- reg0 no jump
-				 "00" when opcode = "111110" else -- reg0 no  bCond
+				 "01" when opcode = "111110" else -- imm no  bCond
  				 "00";
 
 	-- Escolhe operação da ULA
@@ -176,8 +172,11 @@ begin
 
 	-- Em caso de cMov, escrever em regBranch
 	regWrite_en <= '1' when opcode = "001010" else
+				   '1' when opcode = "111110" else
 				   '0';
-	bReg_in <= signal_write_data when opcode = "001010";
+
+	bReg_in <= signal_write_data when opcode = "001010" else
+			   "0000000000000000" when opcode = "111110" and estado_s = "10";
 
 	-- Enable PC em "10"
 	writePC_s <= '1' when estado_s = "10" else
@@ -196,8 +195,8 @@ begin
 				"0000000000000000";
 
 	-- Mux entrada A da ULA
-	ula_in_a <= data_regA when AluSrcA_s = '0' else -- Recebe o valor de um registrador
-				data_ou_pc; -- Recebe saida PC
+	ula_in_a <= data_out_pc when AluSrcA_s = '1' else -- Recebe o valor de um registrador
+				data_regA; -- Recebe saida PC
 
 	-- Escreve no registrador (Execute em 10)
 	writeReg_s <= '1' when estado_s = "01" else
