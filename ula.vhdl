@@ -14,7 +14,7 @@ architecture a_ula of ula is
 begin
 	out_a <= in_a + in_b when sel_op = "000" else
 		     in_a - in_b when sel_op = "001" else
-		     "0000000000000001" when sel_op = "010" and in_a > in_b else
+		     "0000000000000001" when sel_op = "010" and in_a >= in_b else
 		     "0000000000000000" when sel_op = "010" and in_b > in_a else
 		     in_a and in_b when sel_op = "011" else
 		     in_a xor in_b when sel_op = "100" else

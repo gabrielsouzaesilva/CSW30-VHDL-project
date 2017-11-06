@@ -14,7 +14,7 @@ INSTRUÇÕES				:								CODIFICAÇÃO										#	AÇÃO			 		#	OPCODES
 0. nop					:	 0000000000000000															#	nop						# 	000000
 1. add rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rA + rB			#	001000
 2. sub rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB - rA			#	001001
-3. cMov					:	 opcode(15 downto 10), rA(9 downto 7), rC(6 downto 4), exc(3 downto 0)		#	rA>=rC (rBranch<='1')	#	001010
+3. beq rA, rC			:	 opcode(15 downto 10), rA(9 downto 7), rC(6 downto 4), exc(3 downto 0)		#	rA>=rC (rBranch<='1')	#	001010
 4. and rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB and rA			#	001011
 5. xor rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB xor rA			#	001100
 6. not rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= not(rA)			#	001101
@@ -38,7 +38,7 @@ ASSEMBLY:						BINÁRIO:				HEX:
 3. mov 30, $r2					=> 010000 010 0011110	=> 0X411E
 4. add $r3, $r4					=> 001000 011 100 0000	=> 0X21C0
 5. add 1, $r3					=> 010010 011 0000001	=> 0X4981
-6. cMov $r2, $r3				=> 001010 010 011 0000	=> 0X2930
+6. beq $r2, $r3					=> 001010 010 011 0000	=> 0X2930
 7. bCond -3						=> 111110 000 1111101	=> 0XF87C
 8. mov $r4, $r5					=> 010001 100 101 0000	=> 0X4650
 
@@ -48,7 +48,7 @@ ROM:
 			 2 	=> "0100000100011110", -- mov 30, $r2
 			 3 	=> "0010000111000000", -- add $r3, $r4
 			 4 	=> "0100100110000001", -- add 1, $r3
-			 5 	=> "0010100100110000", -- cMov $r2, $r3
+			 5 	=> "0010100100110000", -- beq $r2, $r3
 			 6 	=> "1111100001111100", -- bCond -4
 			 7 	=> "0100011001010000", -- mov $r4, $r5
 			 8  => "0000000000000000",  
