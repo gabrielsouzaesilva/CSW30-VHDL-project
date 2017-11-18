@@ -60,22 +60,22 @@ architecture a_processador of processador is
 			);
 	end component;
 
-	component reg16bits is
-		port(	 regClk			: in std_logic; -- Clock
-		 		 regRst 		: in std_logic; -- Reset
-		  		 regWrite_en	: in std_logic; -- Permite escrever no registrador
-		  	 	 regData_in		: in unsigned(15 downto 0); -- Entrada de dados
-		  		 regData_out	: out unsigned(15 downto 0) -- Saida de dados 
-			);
+	component ram is
+		port(	clk		: in std_logic;
+				address	: in unsigned(15 downto 0);
+				write_en: in std_logic;
+				data_in	: in unsigned(15 downto 0);
+				data_out: out unsigned(15 downto 0)
+		);
 	end component;
 
-	signal data_regB, data_regA, signal_write_data, ula_in_a,ula_in_b, data_in_pc, data_out_pc, data_rom_out, address_rom: unsigned(15 downto 0);
-	signal jump_address, bReg_in, regData_out: unsigned(15 downto 0);
+	signal data_regB, data_regA, signal_write_data, ula_in_a,ula_in_b, data_in_pc, data_out_pc, data_rom_out: unsigned(15 downto 0);
+	signal jump_address, bReg_in, regData_out, rel_address, data_in_ram, data_out_ram, address_ram: unsigned(15 downto 0);
 	signal immediate: unsigned(6 downto 0);
 	signal opcode: unsigned(5 downto 0);
 	signal ALUOp_s, regWrite_s, regA_s, regB_s: unsigned(2 downto 0);
 	signal estado_s,AluSrcB_s: unsigned(1 downto 0);
-	signal writeReg_s, writePC_s, AluSrcA_s, regWrite_en, jump_en: std_logic;
+	signal writeReg_s, writePC_s, AluSrcA_s, regWrite_en, jump_en, writeRAM_s: std_logic;
 
 begin
 
@@ -102,11 +102,11 @@ begin
 	-- ROM
 	rom_p: rom port map(clk => processadorClk, address => data_out_pc, data => data_rom_out);
 
+	-- RAM
+	ram_p: ram port map(clk => processadorClk, address=> address_ram, write_en => writeRAM_s, data_in => data_in_ram, data_out =>data_out_ram);
+
 	-- Maquina de estados
 	stateMachine: maquinaEstados port map(clk => processadorClk, rst => rstProcessador, estado => estado_s);
-
-	-- Registrador para saltos condicionais
-	regBranch: reg16bits port map(regClk => processadorClk, regRst => rstProcessador, regWrite_en => regWrite_en, regData_in => bReg_in, regData_out => regData_out);
 
 	-- Operações:
 
@@ -116,13 +116,17 @@ begin
 	-- Prepara constante
 	immediate <= data_rom_out(6 downto 0) when estado_s = "00";
 
+	-- Relative jump
+	rel_address <= "000000000000" & data_rom_out(3 downto 0) when data_rom_out(3) = '0' and opcode = "001010" else
+				   "111111111111" & data_rom_out(3 downto 0) when data_rom_out(3) = '1' and opcode = "001010";
+
 	-- Prepara endereço de jump
 	jump_address <= signal_write_data when opcode = "111111" else -- Recebe valor de jump absoluto
-					signal_write_data when opcode = "111110"; -- Recebe valor de jump relativo (PC <= PC + signed(imm))
+					data_out_pc + rel_address when opcode = "001010"; -- Recebe valor de jump relativo (PC <= PC + signed(imm))
 
 	-- Ativa jump
 	jump_en <= '1' when opcode = "111111" else -- Ativa jump quando detecta a instrução de jump absoluto
-			   '1' when opcode = "111110" and regData_out = "0000000000000001" else -- Ativa quando detecta salto condicional
+			   '1' when opcode = "001010" and signal_write_data = "0000000000000001" else -- Ativa quando detecta salto condicional
 			   '0';
 
 	--Mux seleciona a entrada A da ULA
@@ -175,9 +179,6 @@ begin
 				   '1' when opcode = "111110" else
 				   '0';
 
-	bReg_in <= signal_write_data when opcode = "001010" else
-			   "0000000000000000" when opcode = "111110" and estado_s = "10";
-
 	-- Enable PC em "10"
 	writePC_s <= '1' when estado_s = "10" else
 				 '0';
@@ -191,7 +192,7 @@ begin
 	ula_in_b <= data_regB when AluSrcB_s = "00" else
 				"000000000" & immediate when AluSrcB_s = "01" and immediate(6) = '0' else -- Add immediate positivo
 				"111111111" & immediate when AluSrcB_s = "01" and immediate(6) = '1' else -- Add immediate negativo
-				constante when AluSrcB_s = "10" else -- constante externa =4
+				constante when AluSrcB_s = "10" else -- externa =4
 				"0000000000000000";
 
 	-- Mux entrada A da ULA
