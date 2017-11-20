@@ -11,7 +11,8 @@ entity processador is
 		   pcOut: out unsigned(15 downto 0); -- Pino saida PC
 		   romOut: out unsigned(15 downto 0); -- Pino saida data ROM
 		   bacnoRegOut_A: out unsigned(15 downto 0); -- Pino saida regA
-		   bacnoRegOut_B: out unsigned(15 downto 0)	 -- Pino saida regB
+		   bacnoRegOut_B: out unsigned(15 downto 0); -- Pino saida regB
+		   ramOut:	out unsigned(15 downto 0) -- Pina saida RAM
 		 );
 end entity;
 
@@ -70,12 +71,12 @@ architecture a_processador of processador is
 	end component;
 
 	signal data_regB, data_regA, signal_write_data, ula_in_a,ula_in_b, data_in_pc, data_out_pc, data_rom_out: unsigned(15 downto 0);
-	signal jump_address, bReg_in, regData_out, rel_address, data_in_ram, data_out_ram, address_ram: unsigned(15 downto 0);
+	signal jump_address, bReg_in, regData_out, rel_address, data_out_ram, address_ram,writeReg_data: unsigned(15 downto 0);
 	signal immediate: unsigned(6 downto 0);
 	signal opcode: unsigned(5 downto 0);
 	signal ALUOp_s, regWrite_s, regA_s, regB_s: unsigned(2 downto 0);
 	signal estado_s,AluSrcB_s: unsigned(1 downto 0);
-	signal writeReg_s, writePC_s, AluSrcA_s, regWrite_en, jump_en, writeRAM_s: std_logic;
+	signal writeReg_s, writePC_s, AluSrcA_s, jump_en, writeRAM_s: std_logic;
 
 begin
 
@@ -85,7 +86,7 @@ begin
 	registers: bancoReg port map (	clk => processadorClk,
 								 	rst => rstProcessador,
 								    write_en => writeReg_s, 
-								    write_data => signal_write_data, 
+								    write_data => writeReg_data, 
 								    reg_sel_write => regWrite_s,
 								    reg_sel_A => regA_s,  
 								    reg_sel_B => regB_s,
@@ -103,7 +104,7 @@ begin
 	rom_p: rom port map(clk => processadorClk, address => data_out_pc, data => data_rom_out);
 
 	-- RAM
-	ram_p: ram port map(clk => processadorClk, address=> address_ram, write_en => writeRAM_s, data_in => data_in_ram, data_out =>data_out_ram);
+	ram_p: ram port map(clk => processadorClk, address=> address_ram, write_en => writeRAM_s, data_in => data_regB, data_out =>data_out_ram);
 
 	-- Maquina de estados
 	stateMachine: maquinaEstados port map(clk => processadorClk, rst => rstProcessador, estado => estado_s);
@@ -115,6 +116,10 @@ begin
 
 	-- Prepara constante
 	immediate <= data_rom_out(6 downto 0) when estado_s = "00";
+
+	-- Escrita RAM
+	writeRAM_s <= '1' when opcode = "011001" else
+				  '0';
 
 	-- Relative jump
 	rel_address <= "000000000000" & data_rom_out(3 downto 0) when data_rom_out(3) = '0' and opcode = "001010" else
@@ -135,6 +140,7 @@ begin
 				 
 	-- Mux seleciona a entrada B da ULA
 	AluSrcB_s <= "00" when opcode(5 downto 3) = "001" else -- Instruções 001uuu ULA
+				 "10" when opcode(5 downto 3) = "011" else -- Acesso ram (AddressRAM + 0)
 				 "00" when opcode = "010001" else -- Mov regA, regB
 				 "01" when opcode = "010000" else -- Mov imm, regB
 				 "01" when opcode = "010010" else -- Add imm, regB
@@ -153,6 +159,7 @@ begin
 
 	-- Verifica qual registrador é lido na entrada A
 	regA_s  <= data_rom_out(9 downto 7) when opcode(5 downto 3) = "001" else -- Instruções da ULA : regA
+			   data_rom_out(9 downto 7) when opcode(5 downto 3) = "011" else -- Acesso RAM (address)
 			   data_rom_out(9 downto 7) when opcode = "010001" else -- mov rA,rB (rB <= rA)
 			   data_rom_out(9 downto 7) when opcode = "010010" else -- mov imm, rB (rB<=rB+imm)
 			   data_rom_out(9 downto 7) when opcode = "111111" else -- jump
@@ -161,6 +168,7 @@ begin
 
 	-- Verifica qual registrador é lido na entrada B
 	regB_s <= data_rom_out(6 downto 4) when opcode(5 downto 3) = "001" else  -- Instruções da ULA
+			  data_rom_out(6 downto 4) when opcode = "011001" else -- st.w ra, RC
 			  "000" when opcode = "010000" else -- mov imm, rB
 			  "000" when opcode = "010001" else -- mov rA,rB
 			  "000" when opcode = "010010" else -- add imm, rB
@@ -168,16 +176,12 @@ begin
 			  "000"; 
 
 	-- Verifica qual registrador deve ser escrito
-	regWrite_s <= data_rom_out(6 downto 4) when opcode(5 downto 3) = "001" and opcode(2 downto 0) /= "010" else -- Instruções ULA exceto cMov
+	regWrite_s <= data_rom_out(6 downto 4) when opcode(5 downto 3) = "001" and opcode(2 downto 0) /= "010" else -- Instruções ULA
 				  data_rom_out(6 downto 4) when opcode = "010001" else -- mov rA,rB
+				  data_rom_out(6 downto 4) when opcode = "011000" else -- sld.w rA, rB
 				  data_rom_out(9 downto 7) when opcode = "010000" else -- mov imm, rB
 				  data_rom_out(9 downto 7) when opcode = "010010" else -- add imm, rB
 				  "000"; 
-
-	-- Em caso de cMov, escrever em regBranch
-	regWrite_en <= '1' when opcode = "001010" else
-				   '1' when opcode = "111110" else
-				   '0';
 
 	-- Enable PC em "10"
 	writePC_s <= '1' when estado_s = "10" else
@@ -192,17 +196,24 @@ begin
 	ula_in_b <= data_regB when AluSrcB_s = "00" else
 				"000000000" & immediate when AluSrcB_s = "01" and immediate(6) = '0' else -- Add immediate positivo
 				"111111111" & immediate when AluSrcB_s = "01" and immediate(6) = '1' else -- Add immediate negativo
-				constante when AluSrcB_s = "10" else -- externa =4
+				constante when AluSrcB_s = "10" else -- Constante externa = 0
 				"0000000000000000";
 
 	-- Mux entrada A da ULA
 	ula_in_a <= data_out_pc when AluSrcA_s = '1' else -- Recebe o valor de um registrador
 				data_regA; -- Recebe saida PC
 
-	-- Escreve no registrador (Execute em 10)
-	writeReg_s <= '1' when estado_s = "01" else
+	-- Escreve no registrador
+	writeReg_s <= '1' when estado_s = "10" else
 				  '0';
 
+	-- Escrita na RAM
+	address_ram <= data_regA when opcode = "011000" and estado_s = "01" else
+				   data_regA when opcode = "011001" and estado_s = "01";
+
+	-- Dado vem da RAM ou ULA
+	writeReg_data <= data_out_ram when opcode = "011000" else
+					 signal_write_data;
 
 	-- Liga os pinos de saida
 
@@ -212,7 +223,7 @@ begin
 	romOut <= data_rom_out;
 	bacnoRegOut_B <= data_regB;
 	bacnoRegOut_A <= data_regA;
-
+	ramOut <= data_out_ram;
 
 
 end architecture;

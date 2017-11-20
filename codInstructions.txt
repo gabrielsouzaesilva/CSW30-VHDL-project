@@ -10,24 +10,108 @@ exc 	=> bits não utilizados
 
 ================================================= INSTRUÇÕES =====================================================
 
-INSTRUÇÕES				:								CODIFICAÇÃO										#	AÇÃO			 		#	OPCODES	
+INSTRUÇÕES				:								CODIFICAÇÃO										#	AÇÃO			 		#	OPCODES
+
+OPCODE(6 downto 4) = 000	
 0. nop					:	 0000000000000000															#	nop						# 	000000
+
+OPCODE(6 downto 4) = 001
 1. add rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rA + rB			#	001000
 2. sub rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB - rA			#	001001
 3. bgt rA, rC			:	 opcode(15 downto 10), rA(9 downto 7), rC(6 downto 4), imm(3 downto 0)		#	rA>=rC (pc<=pc+imm)		#	001010
 4. and rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB and rA			#	001011
 5. xor rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rB xor rA			#	001100
 6. not rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= not(rA)			#	001101
+
+OPCODE(6 downto 4) = 010
 7. mov imm, rB			:	 opcode(15 downto 10), rA(9 downto 7), imm(6 downto 0)						#	rB <= imm 				#	010000
 8. mov rA, rB			:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	rB <= rA				#	010001
 9. add imm, rB			:	 opcode(15 downto 10), rB(9 downto 7), imm(6 downto 0)						#	rB <= imm + rB			#	010010
-10.jump rA 				:	 opcode(15 downto 10), rA(9 downto 7), exc(6 downto 0)						#	ABSOLUTE JUMP			#	111111
-11.lw 
 
+OPCODE(6 downto 4) = 011
+10.sld.w rA, rB 		:	 opcode(15 downto 10), rA(9 downto 7), rB(6 downto 4), exc(3 downto 0)		#	LOAD (rB <=cont @ rA)	#	011000
+11.st.w rA,rC 			:	 opcode(15 downto 10), rA(9 downto 7), rC(6 downto 4), exc(3 downto 0)		#	STORE (rC @ address rA) #	011001
+
+OPCODE(6 downto 4) = 111
+12.jump rA 				:	 opcode(15 downto 10), rA(9 downto 7), exc(6 downto 0)						#	ABSOLUTE JUMP			#	111111
 
 
 
 ============================================ PROGRAMAS EXECUTADOS ==================================================
+
+
+
+
+# TESTE RAM (LAB 07):
+
+	#TESTE A (Funcionamento básico da RAM / armazenar e ler valores): 
+ASSEMBLY:						BINÁRIO:				HEX:
+
+mov 0, $r1						=> 010000 001 0000000	
+mov 0, $r2						=> 010000 010 0000000	
+st.w $r1, $r2					=> 011001 001 010 0000	
+add 1, $r1						=> 010010 001 0000001
+add 1, $r2						=> 010010 010 0000001
+st.w $r1, $r2					=> 011001 001 010 0000
+add 1, $r1						=> 010010 001 0000001
+add 1, $r2						=> 010010 010 0000001
+st.w $r1, $r2					=> 011001 001 010 0000
+add 1, $r1						=> 010010 001 0000001
+add 1, $r2						=> 010010 010 0000001
+st.w $r1, $r2					=> 011001 001 010 0000
+sld.w $r1, $r3					=> 011000 001 011 0000
+add -1, $r1						=> 010010 001 1111111
+sld.w $r1, $r3					=> 011000 001 011 0000
+add -1, $r1						=> 010010 001 1111111
+sld.w $r1, $r3					=> 011000 001 011 0000
+add -1, $r1						=> 010010 001 1111111
+sld.w $r1, $r3					=> 011000 001 011 0000
+
+
+ROM:
+			 0 	=> "0100000010000000", 
+			 1 	=> "0100000100000000", 
+			 2 	=> "0110010010100000", 
+			 3 	=> "0100100010000001", 
+			 4 	=> "0100100100000001", 
+			 5 	=> "0110010010100000", 
+			 6 	=> "0100100010000001", 
+			 7 	=> "0100100100000001",
+			 8  => "0110010010100000",  
+			 9 	=> "0100100010000001",  
+			 10 => "0100100100000001",
+			 11 => "0110010010100000",  
+			 12 => "0110000010110000",  
+			 13 => "0100100011111111", 
+			 14 => "0110000010110000",  
+			 15 => "0100100011111111",  
+			 16 => "0110000010110000",  
+			 17 => "0100100011111111",  
+			 18 => "0110000010110000",  
+			 19 => "0000000000000000",  
+			 20 => "0000000000000000", 
+			 21 => "0000000000000000", 
+			 22 => "0000000000000000", 
+
+
+
+
+mov 31,$r2
+add 1, $r3
+bgt $r2, $r3
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # CÓDIGO 1:
 
