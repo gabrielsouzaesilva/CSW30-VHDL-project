@@ -16,7 +16,7 @@ ghdl -a processador.vhdl
 ghdl -e processador
 ghdl -a processador_tb.vhdl
 ghdl -e processador_tb
-ghdl -r processador_tb --stop-time=100000ns --wave=processador_tb.ghw
+ghdl -r processador_tb --stop-time=1000000ns --wave=processador_tb.ghw
 gtkwave processador_tb.ghw
 
 -------------------------- Teste RAM ---------------------------

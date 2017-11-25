@@ -123,15 +123,18 @@ begin
 
 	-- Relative jump
 	rel_address <= "000000000000" & data_rom_out(3 downto 0) when data_rom_out(3) = '0' and opcode = "001010" else
-				   "111111111111" & data_rom_out(3 downto 0) when data_rom_out(3) = '1' and opcode = "001010";
+				   "111111111111" & data_rom_out(3 downto 0) when data_rom_out(3) = '1' and opcode = "001010" else
+				   "000000000000" & data_rom_out(3 downto 0) when data_rom_out(3) = '0' and opcode = "001110" else
+				   "111111111111" & data_rom_out(3 downto 0) when data_rom_out(3) = '1' and opcode = "001110";
 
 	-- Prepara endereço de jump
 	jump_address <= signal_write_data when opcode = "111111" else -- Recebe valor de jump absoluto
-					data_out_pc + rel_address when opcode = "001010"; -- Recebe valor de jump relativo (PC <= PC + signed(imm))
+					data_out_pc + rel_address when opcode = "001010" or opcode = "001110"; -- Recebe valor de jump relativo (PC <= PC + signed(imm))
 
 	-- Ativa jump
 	jump_en <= '1' when opcode = "111111" else -- Ativa jump quando detecta a instrução de jump absoluto
-			   '1' when opcode = "001010" and signal_write_data = "0000000000000001" else -- Ativa quando detecta salto condicional
+			   '1' when opcode = "001010" and signal_write_data = "0000000000000001" else -- Ativa quando detecta salto em bgt
+			   '1' when opcode = "001110" and signal_write_data = "0000000000000001" else -- Ativa quando detecta salto em beq
 			   '0';
 
 	--Mux seleciona a entrada A da ULA
@@ -176,7 +179,7 @@ begin
 			  "000"; 
 
 	-- Verifica qual registrador deve ser escrito
-	regWrite_s <= data_rom_out(6 downto 4) when opcode(5 downto 3) = "001" and opcode(2 downto 0) /= "010" else -- Instruções ULA
+	regWrite_s <= data_rom_out(6 downto 4) when opcode(5 downto 3) = "001" and opcode(2 downto 0) /= "010"  and opcode(2 downto 0) /= "110" else -- Instruções ULA
 				  data_rom_out(6 downto 4) when opcode = "010001" else -- mov rA,rB
 				  data_rom_out(6 downto 4) when opcode = "011000" else -- sld.w rA, rB
 				  data_rom_out(9 downto 7) when opcode = "010000" else -- mov imm, rB
@@ -193,19 +196,28 @@ begin
 				   data_out_pc;
 
 	-- Mux entrada B da ULA
-	ula_in_b <= data_regB when AluSrcB_s = "00" else
-				"000000000" & immediate when AluSrcB_s = "01" and immediate(6) = '0' else -- Add immediate positivo
-				"111111111" & immediate when AluSrcB_s = "01" and immediate(6) = '1' else -- Add immediate negativo
-				constante when AluSrcB_s = "10" else -- Constante externa = 0
-				"0000000000000000";
+	ula_in_b <= data_regB when AluSrcB_s = "00" and estado_s = "01" else
+				"000000000" & immediate when AluSrcB_s = "01" and immediate(6) = '0' and estado_s = "01" else -- Add immediate positivo
+				"111111111" & immediate when AluSrcB_s = "01" and immediate(6) = '1' and estado_s = "01" else -- Add immediate negativo
+				constante when AluSrcB_s = "10" and estado_s = "01";-- Constante externa = 0
+
 
 	-- Mux entrada A da ULA
-	ula_in_a <= data_out_pc when AluSrcA_s = '1' else -- Recebe o valor de um registrador
-				data_regA; -- Recebe saida PC
+	ula_in_a <= data_out_pc when AluSrcA_s = '1' and estado_s = "01" else  -- Recebe saida PC
+				data_regA when estado_s = "01"; -- Recebe o valor de um registrador
 
 	-- Escreve no registrador
-	writeReg_s <= '1' when estado_s = "10" else
+	writeReg_s <= '1' when estado_s = "10" and opcode = "001000" else
+				  '1' when estado_s = "10" and opcode = "001001" else
+				  '1' when estado_s = "10" and opcode = "001011" else
+				  '1' when estado_s = "10" and opcode = "001100" else
+				  '1' when estado_s = "10" and opcode = "001101" else
+				  '1' when estado_s = "10" and opcode = "010000" else
+				  '1' when estado_s = "10" and opcode = "010001" else
+ 				  '1' when estado_s = "10" and opcode = "010010" else
 				  '0';
+
+
 
 	-- Escrita na RAM
 	address_ram <= data_regA when opcode = "011000" and estado_s = "01" else
