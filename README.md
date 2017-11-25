@@ -6,6 +6,8 @@ Processador referência: Renesas V850
 
 # Teste final: 
 Registrar numeros primos na RAM
+
 Teste realizado com um vetor de 0 a 36
+
 Tempo de execução: aproximadamente 790us
 
